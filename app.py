@@ -796,7 +796,7 @@ with tab5:
                         try:
                             llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", temperature=0)
                             agent = create_pandas_dataframe_agent(
-                                llm, list(dfs.values()), agent_type="tool-calling", allow_dangerous_code=True
+                                llm, list(dfs.values()), agent_type="tool-calling", allow_dangerous_code=True, max_iterations=14
                             )
                             
                             safe_prompt = f"{prompt}\n\nInstructions: Provide the final answer clearly in simple terms. Do not output raw python code."
