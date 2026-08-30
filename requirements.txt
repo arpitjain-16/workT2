@@ -1,0 +1,8 @@
+streamlit
+pandas
+openpyxl
+langchain
+langchain-google-genai
+langchain-experimental
+tabulate
+plotly
