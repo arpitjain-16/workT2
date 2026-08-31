@@ -1,11 +1,12 @@
 import os
 import re
+from langchain_google_genai import ChatGoogleGenerativeAI
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_experimental.agents import create_pandas_dataframe_agent
+from langchain_groq import ChatGroq
 
 # Set page layout to wide
 st.set_page_config(
@@ -211,7 +212,7 @@ if not uploaded_files:
 # Load Data dynamically from uploaded files for original dashboard
 @st.cache_data
 def load_data(file):
-  df_prep = pd.read_excel(file, sheet_name="query (42)")
+  df_prep = pd.read_excel(file, sheet_name="prep")
   return df_prep
 
 # Find the prep file to power the original tabs
@@ -754,56 +755,37 @@ with tab4:
 # ==========================================
 # TAB 5: AI CHATBOT
 # ==========================================
-with tab5:
-    st.subheader("🤖 Universal Excel Assistant")
-    st.markdown("Ask natural language questions across all uploaded files, or append `- direct` for an exact text search.")
-    
+with tab5: 
+    st.subheader("🤖 Universal Excel Assistant") 
+    st.markdown("Ask natural language questions across all uploaded files.")
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
     for msg in st.session_state.messages:
         st.chat_message(msg["role"]).write(msg["content"])
 
-    if prompt := st.chat_input("E.g., 'What is the total area for L&T?' or 'L&T - direct'"):
+    if prompt := st.chat_input("E.g., 'What is the total area for L&T?'"):
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
 
-        if prompt.strip().lower().endswith("- direct"):
-            search_term = prompt.replace("- direct", "").replace("-direct", "").strip()
-            results, total_rows = {}, 0
-            
-            for sheet_name, df in dfs.items():
-                mask = df.astype(str).apply(lambda col: col.str.contains(search_term, case=False, na=False)).any(axis=1)
-                matched = df[mask]
-                if not matched.empty:
-                    results[sheet_name] = matched
-                    total_rows += len(matched)
-            
-            with st.chat_message("assistant"):
-                st.write(f"### 🎯 Direct Search Results for: **'{search_term}'**")
-                st.write(f"**Found {total_rows} rows across {len(results)} sheets.**")
-                for sheet_name, res_df in results.items():
-                    st.write(f"📁 **{sheet_name}**")
-                    st.dataframe(res_df, use_container_width=True)
-
+        if not GEMINI_API_KEY:
+            st.error("Please configure your GOOGLE_API_KEY in the `.streamlit/secrets.toml` file to use the AI Agent.")
         else:
-            if not GEMINI_API_KEY:
-                st.error("Please configure your GOOGLE_API_KEY in the `.streamlit/secrets.toml` file to use the AI Agent.")
-            else:
-                os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
-                with st.chat_message("assistant"):
-                    with st.spinner("Analyzing spreadsheets..."):
-                        try:
-                            llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", temperature=0)
-                            agent = create_pandas_dataframe_agent(
-                                llm, list(dfs.values()), agent_type="tool-calling", allow_dangerous_code=True, max_iterations=14
-                            )
-                            
-                            safe_prompt = f"{prompt}\n\nInstructions: Provide the final answer clearly in simple terms. Do not output raw python code."
-                            response = agent.invoke({"input": safe_prompt})
-                            
-                            output_data = response["output"]
-                            final_text = output_data[0].get("text", "") if isinstance(output_data, list) else str(output_data)
-                            st.write(final_text)
-                        except Exception as e:
-                            st.error(f"Agent Error: {e}")
+            os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
+            with st.chat_message("assistant"):
+                with st.spinner("Analyzing spreadsheets..."):
+                    try:
+                        llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite", temperature=0)
+                        agent = create_pandas_dataframe_agent(
+                            llm, list(dfs.values()), agent_type="tool-calling", allow_dangerous_code=True, max_iterations=13, verbose=True
+                        )
+                        
+                        safe_prompt = f"{prompt}\n\nInstructions: Provide the final answer clearly in simple terms. Do not output raw python code."
+                        response = agent.invoke({"input": safe_prompt})
+                        
+                        output_data = response["output"]
+                        final_text = output_data[0].get("text", "") if isinstance(output_data, list) else str(output_data)
+                        st.write(final_text)
+                    except Exception as e:
+                        st.error(f"Agent Error: {e}")
