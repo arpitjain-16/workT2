@@ -6,7 +6,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from langchain_experimental.agents import create_pandas_dataframe_agent
-from langchain_groq import ChatGroq
 
 # Set page layout to wide
 st.set_page_config(
