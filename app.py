@@ -12,6 +12,25 @@ st.set_page_config(
     page_title="Real Estate & Workplace Dashboard", layout="wide"
 )
 
+st.markdown(
+    """
+    <style>
+        /* Hide the top-right toolbar, deploy button, and GitHub/fork icon container */
+        div[data-testid="stToolbar"] {
+            visibility: hidden !important;
+            display: none !important;
+        }
+        
+        /* Specifically target the GitHub icon if still visible */
+        #GithubIcon {
+            visibility: hidden !important;
+            display: none !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Fetch all credentials directly from .streamlit/secrets.toml
 APP_USERNAME = st.secrets.get("APP_USERNAME", "admin")
 APP_PASSWORD = st.secrets.get("APP_PASSWORD", "mll@2026")
